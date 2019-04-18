@@ -1,13 +1,32 @@
-version: 1.0.{build}
-install:
-- git clone https://github.com/ebekker/letsencrypt-win.git
-#- nuget restore letsencrypt-win\letsencrypt-win.sln
-- nuget restore letsencrypt-win-simple.sln
-- cp -R packages letsencrypt-win
+version: 2.0.5.{build}
+image: Visual Studio 2017
+configuration: Release
+platform: Any CPU
+shallow_clone: true
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+environment:
+  PfxPassword:
+    secure: MoBSjfTA4dQsMSor6Lbst6kKjVNAYE5elSDK6+IrR1VhCTz5yAsjBbcUC4L4SAegHKABXov/4VyL+3KtrBS8shCkgAFfSK1j98Yvn5K3JyE=
+before_build:
+- ps: >-
+    cd $env:APPVEYOR_BUILD_FOLDER\src\
+
+    nuget restore
 build:
-  project: letsencrypt-win-simple.sln
+  project: '\src\wacs.sln'
   verbosity: minimal
-artifacts:
-- path: letsencrypt-win-simple\bin\debug
-  name: letsencrypt-win-simple
-  type: zip
+after_build:
+- ps: >-
+    cd $env:APPVEYOR_BUILD_FOLDER\build\
+
+    .\create-artifacts.ps1 $env:APPVEYOR_BUILD_FOLDER $env:APPVEYOR_BUILD_VERSION $env:PfxPassword
+
+    Get-ChildItem $env:APPVEYOR_BUILD_FOLDER\build\artifacts\ | Foreach-Object {
+        Push-AppveyorArtifact $_.FullName -FileName $_.Name
+    }
+deploy: off
